@@ -124,6 +124,7 @@ local gwContainerId     = nil;
 local gwPeerTable       = {};
 local gwCommonChannel 	= {};
 local gwOfficerChannel 	= {};
+local gwLfgChannel      = {};
 
 
 --
@@ -689,6 +690,7 @@ local function GwPrepComms()
     gwPeerTable     = {};
     gwCommonChannel = GwNewChannelTable();
     gwOfficerChannel = GwNewChannelTable();
+    gwLfgChannel = GwNewChannelTable();
 
     GuildRoster();
     
@@ -698,7 +700,7 @@ end
 --- Parse the guild information page to gather configuration information.
 -- @param chan Channel control table to update.
 -- @return True if successful, false otherwise.
-local function GwGetGuildInfoConfig(chan)
+local function GwGetGuildInfoConfig(chan, lfgChannel)
 
     GwDebug(2, 'guild_info: parsing guild information.');
 
@@ -737,15 +739,22 @@ local function GwGetGuildInfoConfig(chan)
                     if chan.name ~= vector[2] then
                         chan.name = vector[2];
                         chan.dirty = true;
+                        lfgChan.name = vector[2] + '_lfg';
+                        lfgChan.dirty = true;
                     end
                     
                     if chan.password ~= vector[3] then
                         chan.password = vector[3];
                         chan.dirty = true;
+                        lfgChan.password = vector[3];
+                        lfgChan.dirty = true;
                     end
                         
                     GwDebug(2, format('guild_info: channel=<<%04X>>, password=<<%04X>>', 
                             GwStringHash(chan.name), GwStringHash(chan.password)));
+
+                    GwDebug(2, format('lfg_guild_info: channel=<<%04X>>, password=<<%04X>>', 
+                            GwStringHash(lfgChan.name), GwStringHash(lfgChan.password)));
 
                 elseif vector[1] == 'o' then
                 
@@ -877,7 +886,7 @@ local function GwRefreshComms()
     if GreenWall.ochat then
         if GwIsConnected(gwOfficerChannel) then    
             if gwOfficerChannel.dirty then
-                GwDebug(2, 'refresh_comms: common channel dirty flag set.');
+                GwDebug(2, 'refresh_comms: officer channel dirty flag set.');
                 GwLeaveChannel(gwOfficerChannel);
                 if GwJoinChannel(gwOfficerChannel) then
                     GwFlushChannel(gwOfficerChannel);
@@ -890,6 +899,23 @@ local function GwRefreshComms()
             if GwJoinChannel(gwOfficerChannel) then
                 GwFlushChannel(gwOfficerChannel);
             end
+        end
+    end
+
+    if GwIsConnected(gwLfgChannel) then
+        if gwLfgChannel.dirty then
+            GwDebug(2, 'refresh_comms: lfg channel dirty flag set.');
+            GwLeaveChannel(gwLfgChannel);
+            if GwJoinChannel(gwLfgChannel) then
+                GwFlushChannel(gwLfgChannel);
+            end
+            gwLfgChannel.dirty = false;
+        end
+    elseif gwFlagChatBlock then
+        GwDebug(2, 'refresh_comms: deferring lfg channel refresh, General not yet joined.');
+    else
+        if GwJoinChannel(gwLfgChannel) then
+            GwFlushChannel(gwLfgChannel);
         end
     end
 
@@ -1387,7 +1413,7 @@ function GreenWall_OnEvent(self, event, ...)
 
         -- Update the configuration
         if not gwCommonChannel.configured then
-            GwGetGuildInfoConfig(gwCommonChannel);
+            GwGetGuildInfoConfig(gwCommonChannel, gwLfgChannel);
         end
         
         if GreenWall.ochat then
@@ -1398,7 +1424,7 @@ function GreenWall_OnEvent(self, event, ...)
         
         -- Periodic check for updated configuration.
         if holdtime >= gwConfigHoldInt then
-            GwGetGuildInfoConfig(gwCommonChannel);
+            GwGetGuildInfoConfig(gwCommonChannel, gwLfgChannel);
             if GreenWall.ochat then
                 GwGetOfficerNoteConfig(gwOfficerChannel);
             end
