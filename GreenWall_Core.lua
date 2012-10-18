@@ -700,7 +700,7 @@ end
 --- Parse the guild information page to gather configuration information.
 -- @param chan Channel control table to update.
 -- @return True if successful, false otherwise.
-local function GwGetGuildInfoConfig(chan, lfgChannel)
+local function GwGetGuildInfoConfig(chan, lfgChan)
 
     GwDebug(2, 'guild_info: parsing guild information.');
 
