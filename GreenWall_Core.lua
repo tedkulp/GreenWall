@@ -739,7 +739,7 @@ local function GwGetGuildInfoConfig(chan, lfgChannel)
                     if chan.name ~= vector[2] then
                         chan.name = vector[2];
                         chan.dirty = true;
-                        lfgChan.name = vector[2] + '_lfg';
+                        lfgChan.name = vector[2] .. '_lfg';
                         lfgChan.dirty = true;
                     end
                     
